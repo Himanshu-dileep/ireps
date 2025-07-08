@@ -2,73 +2,76 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Live Tender Data from Google Sheets</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tender Notices – Live Sheet</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
+      padding: 30px;
+      background: #f8f8f8;
+      color: #333;
     }
-    table {
-      border-collapse: collapse;
+
+    h1 {
+      color: #2c3e50;
+    }
+
+    .sheet-container {
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    iframe {
       width: 100%;
-      font-size: 14px;
+      height: 700px;
+      border: none;
     }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 6px 10px;
-      text-align: left;
+
+    .download-link {
+      margin: 15px 0;
+      display: inline-block;
+      font-size: 16px;
     }
-    th {
-      background-color: #f2f2f2;
+
+    .download-link a {
+      text-decoration: none;
+      color: #0073e6;
     }
-    .status {
-      white-space: nowrap;
+
+    .download-link a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      iframe {
+        height: 500px;
+      }
     }
   </style>
 </head>
 <body>
-  <h2>Live Tender Data</h2>
-  <p>Fetched from a live <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pub?gid=1976447959&single=true&output=csv" target="_blank">Google Sheet</a>.</p>
-  <table id="data-table">
-    <thead></thead>
-    <tbody></tbody>
-  </table>
 
-  <script>
-    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pub?gid=1976447959&single=true&output=csv";
+  <h1>📄 Live Tender Notices</h1>
+  <p>This data is fetched live from our published Google Sheet. You can view, scroll, and interact with the embedded sheet below.</p>
 
-    fetch(csvUrl)
-      .then(response => response.text())
-      .then(csv => {
-        const lines = csv.trim().split('\n');
-        const table = document.getElementById("data-table");
-        const thead = table.querySelector("thead");
-        const tbody = table.querySelector("tbody");
+  <div class="download-link">
+    📥 <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pub?gid=1976447959&single=true&output=xlsx" target="_blank">
+      Download as Excel (.xlsx)
+    </a>
+  </div>
 
-        const headers = lines[0].split(',');
-        const headerRow = document.createElement("tr");
-        headers.forEach(header => {
-          const th = document.createElement("th");
-          th.textContent = header.trim();
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
+  <div class="sheet-container">
+    <iframe 
+      src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pubhtml?gid=1976447959&single=true&widget=true&headers=false"
+      allowfullscreen>
+    </iframe>
+  </div>
 
-        lines.slice(1).forEach(line => {
-          const cells = line.split(',');
-          const row = document.createElement("tr");
-          cells.forEach(cell => {
-            const td = document.createElement("td");
-            td.textContent = cell.trim();
-            row.appendChild(td);
-          });
-          tbody.appendChild(row);
-        });
-      })
-      .catch(error => {
-        document.body.innerHTML = "<p>⚠️ Failed to load data from Google Sheets.</p>";
-        console.error("CSV load error:", error);
-      });
-  </script>
+  <p style="margin-top: 30px; font-size: 14px; color: #777;">
+    🔄 Last updated: Automatically reflects updates made to the original Google Sheet.
+  </p>
+
 </body>
 </html>
