@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Shanti Machinery Works - Work List</title>
+
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      display: flex;
+    }
+    #filters {
+      width: 250px;
+      padding-right: 20px;
+      border-right: 1px solid #ddd;
+      box-sizing: border-box;
+    }
+    #filters h3 {
+      margin-top: 0;
+    }
+    .filter-section {
+      margin-bottom: 20px;
+    }
+    #table-container {
+      flex: 1;
+      margin-left: 20px;
+      overflow-x: auto;
+    }
+    #saveChangesBtn {
+      margin-top: 20px;
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="filters">
+    <h3>Filters</h3>
+
+    <div class="filter-section" id="priorityFilterSection">
+      <h4>Priority</h4>
+      <!-- Priority checkboxes will be appended here -->
+    </div>
+
+    <div class="filter-section" id="statusFilterSection">
+      <h4>Status</h4>
+      <!-- Status checkboxes will be appended here -->
+    </div>
+
+    <button id="clearFiltersBtn">Clear Filters</button>
+  </div>
+
+  <div id="table-container">
+    <h1>Shanti Machinery Works - Work List</h1>
+    <table id="csv-table" class="display" style="width:100%">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+
+    <button id="saveChangesBtn">Save Changes</button>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+  <script>
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-n5cBUDYXJ1WySAb2LezIXXfxODrlmXyS-fDAkdVfANGztRFUhfRcMWj56JB96XRCVlFFGCLt876y/pub?gid=1475439125&single=true&output=csv";
+
+    let dataTable;
+    let headers = [];
+    let dataRows = [];
+
+    // Fetch CSV and initialize
+    fetch(csvUrl)
+      .then(res => res.text())
+      .then(csv => {
+        const rows = csv.trim().split("\n").map(r => parseCSVRow(r));
+        headers = rows[0];
+        dataRows = rows.slice(1);
+
+        buildTable(headers, dataRows);
+        populateFilters("Priority", "priorityFilterSection");
+        populateFilters("Status", "statusFilterSection");
+
+        setupFilterListeners();
+      });
+
+    // Basic CSV row parser that handles quoted commas
+    function parseCSVRow(row) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < row.length; i++) {
+        const char = row[i];
+        if (char === '"' && (i === 0 || row[i - 1] !== '\\')) {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim().replace(/^"|"$/g, ''));
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim().replace(/^"|"$/g, ''));
+      return result;
+    }
+
+    function buildTable(headers, data) {
+      const thead = document.querySelector("#csv-table thead");
+      const tbody = document.querySelector("#csv-table tbody");
+
+      // Clear old data if any
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+
+      // Build headers
+      const headerRow = document.createElement("tr");
+      headers.forEach(h => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+
+      // Build rows
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        row.forEach(cell => {
+          const td = document.createElement("td");
+          td.textContent = cell;
+          tr.appendChild(td);
+        });
+
+        // Replace Status cell with dropdown (assuming Status is 4th col, index 3)
+        const statusCell = tr.cells[3];
+        const select = document.createElement("select");
+        ["To Do", "In Progress", "Completed"].forEach(status => {
+          const option = document.createElement("option");
+          option.value = status;
+          option.textContent = status;
+          select.appendChild(option);
+        });
+        select.value = row[3];
+        statusCell.innerHTML = "";
+        statusCell.appendChild(select);
+
+        tbody.appendChild(tr);
+      });
+
+      // Initialize DataTable
+      dataTable = $('#csv-table').DataTable({
+        paging: true,
+        lengthChange: false,
+        searching: true,
+        info: true,
+        autoWidth: false,
+        order: []
+      });
+    }
+
+    function populateFilters(columnName, containerId) {
+      const colIndex = headers.indexOf(columnName);
+      if (colIndex === -1) return;
+
+      const container = document.getElementById(containerId);
+
+      // Get unique values from that column
+      const values = [...new Set(dataRows.map(row => row[colIndex]).filter(Boolean))].sort();
+
+      values.forEach(val => {
+        const id = `${containerId}_${val.replace(/\s+/g, "_")}`;
+        const label = document.createElement("label");
+        label.style.display = "block";
+        label.style.marginBottom = "4px";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.name = containerId === "priorityFilterSection" ? "priority" : "status";
+        checkbox.value = val;
+        checkbox.id = id;
+
+        label.appendChild(checkbox);
+        label.append(` ${val}`);
+
+        container.appendChild(label);
+      });
+    }
+
+    function setupFilterListeners() {
+      const priorityCheckboxes = document.querySelectorAll('input[name="priority"]');
+      const statusCheckboxes = document.querySelectorAll('input[name="status"]');
+
+      priorityCheckboxes.forEach(cb => cb.addEventListener('change', applyFilters));
+      statusCheckboxes.forEach(cb => cb.addEventListener('change', applyFilters));
+
+      document.getElementById("clearFiltersBtn").addEventListener("click", () => {
+        priorityCheckboxes.forEach(cb => cb.checked = false);
+        statusCheckboxes.forEach(cb => cb.checked = false);
+        applyFilters();
+      });
+    }
+
+    function applyFilters() {
+      const selectedPriorities = Array.from(document.querySelectorAll('input[name="priority"]:checked')).map(cb => cb.value.toLowerCase());
+      const selectedStatuses = Array.from(document.querySelectorAll('input[name="status"]:checked')).map(cb => cb.value.toLowerCase());
+
+      dataTable.rows().every(function () {
+        const rowData = this.data();
+
+        // Adjust these indexes if your CSV structure changes
+        const priority = rowData[headers.indexOf("Priority")].toLowerCase();
+        const status = rowData[headers.indexOf("Status")].toLowerCase();
+
+        const priorityMatch = selectedPriorities.length === 0 || selectedPriorities.includes(priority);
+        const statusMatch = selectedStatuses.length === 0 || selectedStatuses.includes(status);
+
+        if (priorityMatch && statusMatch) {
+          $(this.node()).show();
+        } else {
+          $(this.node()).hide();
+        }
+      });
+    }
+
+    // Save changes button logic
+    document.getElementById("saveChangesBtn").addEventListener("click", () => {
+      const rows = document.querySelectorAll("#csv-table tbody tr");
+      const updates = [];
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        const statusSelect = cells[3].querySelector("select"); // Status col index = 3
+        const taskId = cells[5].textContent; // Adjust if needed; this assumes 6th col has ID
+
+        if (statusSelect) {
+          updates.push({ id: taskId, status: statusSelect.value });
+        }
+      });
+
+      fetch("https://script.google.com/macros/s/AKfycbwXhkVFy9HFVG_-DB7M8k_nVcZ2zFuduXloC7uUqRgaiD7EOLqSbpjfMnux9GilAlk/exec", {
+        method: "POST",
+        body: JSON.stringify(updates),
+        headers: { "Content-Type": "application/json" }
+      })
+        .then(res => res.text())
+        .then(data => alert(data))
+        .catch(err => console.error("Error updating:", err));
+    });
+  </script>
+</body>
+</html>
