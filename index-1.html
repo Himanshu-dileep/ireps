@@ -1,273 +1,222 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Shanti Machinery Works - Tender List</title>
+  <title>Shanti Machinery Works - Work List</title>
+  <meta charset="utf-8">
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
+      margin: 0;
       display: flex;
-      background: #f9f9f9;
+      height: 100vh;
     }
-
     #filters {
-      width: 240px;
+      width: 250px;
       border-right: 1px solid #ccc;
-      padding-right: 20px;
+      padding: 15px;
       box-sizing: border-box;
-      background: #fff;
-      border-radius: 6px;
-      box-shadow: 0 0 8px rgb(0 0 0 / 0.1);
+      overflow-y: auto;
+      background: #f7f7f7;
     }
-
     #filters h3 {
       margin-top: 0;
-      font-size: 1.4em;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #ddd;
     }
-
-    .filter-group {
+    #filters section {
       margin-bottom: 20px;
     }
-
-    .filter-group h4 {
-      margin-bottom: 8px;
-      font-size: 1.1em;
-      color: #333;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 4px;
-    }
-
-    .filter-group label {
+    #filters label {
       display: block;
-      margin-bottom: 6px;
+      margin: 6px 0;
       cursor: pointer;
-      user-select: none;
     }
-
-    #table-container {
-      flex: 1;
-      padding-left: 30px;
-      box-sizing: border-box;
+    #filters input[type="checkbox"] {
+      margin-right: 8px;
     }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      border-radius: 6px;
-      overflow: hidden;
-      box-shadow: 0 0 10px rgb(0 0 0 / 0.1);
-    }
-
-    th, td {
-      padding: 10px 12px;
-      border: 1px solid #ddd;
-      text-align: left;
-      font-size: 14px;
-    }
-
-    th {
-      background: #f1f1f1;
-    }
-
     #clearFiltersBtn {
-      background: #0073e6;
-      color: white;
-      border: none;
-      padding: 10px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
       margin-top: 10px;
-      width: 100%;
+      padding: 8px 12px;
+      background: #0073e6;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
     }
-
-    #clearFiltersBtn:hover {
-      background: #005bb5;
+    main {
+      flex: 1;
+      padding: 20px;
+      overflow: auto;
+    }
+    table.dataTable thead th {
+      background: #ddd;
     }
   </style>
+
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
 </head>
 <body>
-
   <div id="filters">
     <h3>Filters</h3>
-
-    <div class="filter-group" id="departmentFilterGroup">
-      <h4>Department</h4>
-      <!-- Dept checkboxes go here -->
-    </div>
-
-    <div class="filter-group" id="organisationFilterGroup">
-      <h4>Organisation</h4>
-      <!-- Org checkboxes go here -->
-    </div>
-
-    <div class="filter-group" id="emdFilterGroup">
-      <h4>EMD?</h4>
-      <!-- EMD checkboxes go here -->
-    </div>
-
-    <button id="clearFiltersBtn">Clear Filters</button>
+    <!-- Filter checkboxes will be added here -->
   </div>
 
-  <div id="table-container">
-    <h1>Shanti Machinery Works - Tender List</h1>
-    <table id="tender-table">
-      <thead></thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <main>
+    <h1>Shanti Machinery Works - Work List</h1>
+    <div id="table-container">
+      <table id="csv-table" class="display" style="width:100%">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Save Changes Button -->
+    <div style="text-align: center; margin-top: 20px;">
+      <button id="saveChangesBtn">Save Changes</button>
+    </div>
+  </main>
+
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 
   <script>
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pub?gid=1976447959&single=true&output=csv";
 
+    let dataTable;
+    let allData = [];
     let headers = [];
-    let dataRows = [];
 
-    // Utility to parse CSV row (simple)
-    function parseCSVRow(row) {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < row.length; i++) {
-        const char = row[i];
-        if (char === '"' && (i === 0 || row[i - 1] !== '\\')) {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          result.push(current.trim().replace(/^"|"$/g, ''));
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      result.push(current.trim().replace(/^"|"$/g, ''));
-      return result;
-    }
+    // Columns to create filters for
+    const filterColumns = ["Department", "Organisation", "EMD?"];
 
-    function buildTable(headers, data) {
-      const thead = document.querySelector("#tender-table thead");
-      const tbody = document.querySelector("#tender-table tbody");
+    // Store selected filters here
+    const activeFilters = {};
 
-      thead.innerHTML = '';
-      tbody.innerHTML = '';
+    // Initialize activeFilters keys with empty sets
+    filterColumns.forEach(col => activeFilters[col] = new Set());
 
-      // Build header row
-      const headerRow = document.createElement("tr");
-      headers.forEach(h => {
-        const th = document.createElement("th");
-        th.textContent = h;
-        headerRow.appendChild(th);
-      });
-      thead.appendChild(headerRow);
+    // Utility: create checkbox list for filter column values
+    function createFilterCheckboxes(columnName, uniqueValues) {
+      const filtersDiv = document.getElementById("filters");
+      const section = document.createElement("section");
+      const title = document.createElement("strong");
+      title.textContent = columnName;
+      section.appendChild(title);
 
-      // Build data rows
-      data.forEach(row => {
-        const tr = document.createElement("tr");
-        row.forEach(cell => {
-          const td = document.createElement("td");
-          td.textContent = cell;
-          tr.appendChild(td);
-        });
-        tbody.appendChild(tr);
-      });
-    }
-
-    function populateCheckboxFilters(columnName, containerId) {
-      const colIndex = headers.indexOf(columnName);
-      if (colIndex === -1) return;
-
-      const container = document.getElementById(containerId);
-      container.innerHTML = `<h4>${columnName}</h4>`; // reset
-
-      // Unique sorted values
-      const uniqueVals = [...new Set(dataRows.map(row => row[colIndex]).filter(Boolean))].sort();
-
-      uniqueVals.forEach(val => {
-        const id = `${containerId}_${val.replace(/\s+/g, '_')}`;
+      uniqueValues.forEach(value => {
         const label = document.createElement("label");
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
-        checkbox.name = columnName.toLowerCase();
-        checkbox.value = val;
-        checkbox.id = id;
-
-        label.htmlFor = id;
+        checkbox.value = value;
+        checkbox.dataset.column = columnName;
+        checkbox.addEventListener("change", onCheckboxChange);
         label.appendChild(checkbox);
-        label.append(` ${val}`);
-
-        container.appendChild(label);
+        label.appendChild(document.createTextNode(value));
+        section.appendChild(label);
       });
+
+      filtersDiv.appendChild(section);
     }
 
-    function setupFilterListeners() {
-      // Add event listeners to all filter checkboxes
-      document.querySelectorAll('#filters input[type="checkbox"]').forEach(cb => {
-        cb.addEventListener('change', applyFilters);
-      });
+    // When checkbox toggled
+    function onCheckboxChange(e) {
+      const column = e.target.dataset.column;
+      const val = e.target.value;
 
-      // Clear filters button
-      document.getElementById("clearFiltersBtn").addEventListener("click", () => {
-        document.querySelectorAll('#filters input[type="checkbox"]').forEach(cb => cb.checked = false);
-        applyFilters();
-      });
+      if (e.target.checked) {
+        activeFilters[column].add(val);
+      } else {
+        activeFilters[column].delete(val);
+      }
+      applyFilters();
     }
 
+    // Apply filters on DataTable rows
     function applyFilters() {
-      const selectedDepartments = Array.from(document.querySelectorAll('input[name="department"]:checked')).map(cb => cb.value.toLowerCase());
-      const selectedOrganisations = Array.from(document.querySelectorAll('input[name="organisation"]:checked')).map(cb => cb.value.toLowerCase());
-      const selectedEMD = Array.from(document.querySelectorAll('input[name="emd?"]:checked')).map(cb => cb.value.toLowerCase());
+      // Compose regex filters for each column with selected values or empty to disable filter
+      filterColumns.forEach(col => {
+        const colIndex = headers.indexOf(col);
+        if (colIndex === -1) return;
 
-      const tbody = document.querySelector("#tender-table tbody");
-      const rows = tbody.querySelectorAll("tr");
-
-      const depIndex = headers.indexOf("Department");
-      const orgIndex = headers.indexOf("Organisation");
-      const emdIndex = headers.indexOf("EMD?");
-
-      rows.forEach(row => {
-        const cells = row.querySelectorAll("td");
-
-        const depVal = cells[depIndex].textContent.toLowerCase();
-        const orgVal = cells[orgIndex].textContent.toLowerCase();
-        const emdVal = cells[emdIndex].textContent.toLowerCase();
-
-        // Filter logic:
-        // Show if matches any selected in a filter group OR no selection in that group,
-        // And all groups must match
-
-        const depMatch = selectedDepartments.length === 0 || selectedDepartments.includes(depVal);
-        const orgMatch = selectedOrganisations.length === 0 || selectedOrganisations.includes(orgVal);
-        const emdMatch = selectedEMD.length === 0 || selectedEMD.includes(emdVal);
-
-        if (depMatch && orgMatch && emdMatch) {
-          row.style.display = "";
+        if (activeFilters[col].size === 0) {
+          // No filter on this column
+          dataTable.column(colIndex).search("");
         } else {
-          row.style.display = "none";
+          // Regex to match any of the selected values exactly (escape special chars)
+          const regex = Array.from(activeFilters[col])
+                             .map(v => v.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'))
+                             .join("|");
+          dataTable.column(colIndex).search(`^(${regex})$`, true, false);
         }
       });
+
+      dataTable.draw();
     }
 
-    // Fetch CSV and initialize
+    // Clear filters button
+    function addClearFiltersButton() {
+      const btn = document.createElement("button");
+      btn.id = "clearFiltersBtn";
+      btn.textContent = "Clear Filters";
+      btn.addEventListener("click", () => {
+        filterColumns.forEach(col => activeFilters[col].clear());
+        document.querySelectorAll("#filters input[type=checkbox]").forEach(chk => chk.checked = false);
+        applyFilters();
+      });
+      document.getElementById("filters").appendChild(btn);
+    }
+
+    // Main: fetch CSV, parse, build table and filters
     fetch(csvUrl)
       .then(res => res.text())
       .then(csv => {
-        const rows = csv.trim().split("\n").map(parseCSVRow);
+        const rows = csv.trim().split("\n").map(r => r.split(","));
         headers = rows[0];
-        dataRows = rows.slice(1);
+        allData = rows.slice(1);
 
-        buildTable(headers, dataRows);
+        // Build table headers
+        const thead = document.querySelector("#csv-table thead");
+        const headerRow = document.createElement("tr");
+        headers.forEach(h => {
+          const th = document.createElement("th");
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
 
-        // Populate filters for these columns
-        populateCheckboxFilters("Department", "departmentFilterGroup");
-        populateCheckboxFilters("Organisation", "organisationFilterGroup");
-        populateCheckboxFilters("EMD?", "emdFilterGroup");
+        // Build table body rows
+        const tbody = document.querySelector("#csv-table tbody");
+        allData.forEach(row => {
+          const tr = document.createElement("tr");
+          row.forEach(cell => {
+            const td = document.createElement("td");
+            td.textContent = cell;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
 
-        setupFilterListeners();
-      });
+        // Initialize DataTable
+        dataTable = $('#csv-table').DataTable({
+          order: [], // default no sorting to preserve original order
+          lengthMenu: [10, 25, 50, 100],
+          pageLength: 25,
+        });
+
+        // Create filters for each column defined in filterColumns
+        filterColumns.forEach(col => {
+          const colIndex = headers.indexOf(col);
+          if (colIndex === -1) return;
+          // Unique values for this column
+          const uniqueValues = Array.from(new Set(allData.map(row => row[colIndex]))).sort();
+          createFilterCheckboxes(col, uniqueValues);
+        });
+
+        addClearFiltersButton();
+      })
+      .catch(err => console.error("Error loading CSV:", err));
+
+    // Your existing save changes code (if needed) can stay here, unchanged
+
   </script>
-
 </body>
 </html>
