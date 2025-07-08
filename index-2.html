@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Shanti Machinery Works - Work List</title>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      height: 100vh;
+    }
+    #filters {
+      width: 250px;
+      border-right: 1px solid #ccc;
+      padding: 15px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      background: #f7f7f7;
+    }
+    #filters h3 {
+      margin-top: 0;
+    }
+    #filters section {
+      margin-bottom: 20px;
+    }
+    #filters label {
+      display: block;
+      margin: 6px 0;
+      cursor: pointer;
+    }
+    #filters input[type="checkbox"] {
+      margin-right: 8px;
+    }
+    #clearFiltersBtn {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #0073e6;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    main {
+      flex: 1;
+      padding: 20px;
+      overflow: auto;
+    }
+    table.dataTable thead th {
+      background: #ddd;
+      cursor: pointer; /* Show pointer to indicate sortable */
+    }
+  </style>
+
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+</head>
+<body>
+  <div id="filters">
+    <h3>Filters</h3>
+    <!-- Filter checkboxes will be added here -->
+  </div>
+
+  <main>
+    <h1>Shanti Machinery Works - Work List</h1>
+    <div id="table-container">
+      <table id="csv-table" class="display" style="width:100%">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Save Changes Button -->
+    <div style="text-align: center; margin-top: 20px;">
+      <button id="saveChangesBtn">Save Changes</button>
+    </div>
+  </main>
+
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+  <script>
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pub?gid=1976447959&single=true&output=csv";
+
+    let dataTable;
+    let allData = [];
+    let headers = [];
+
+    // Columns to create filters for
+    const filterColumns = ["Department", "Organisation", "EMD?"];
+
+    // Store selected filters here
+    const activeFilters = {};
+
+    // Initialize activeFilters keys with empty sets
+    filterColumns.forEach(col => activeFilters[col] = new Set());
+
+    // Utility: create checkbox list for filter column values
+    function createFilterCheckboxes(columnName, uniqueValues) {
+      const filtersDiv = document.getElementById("filters");
+      const section = document.createElement("section");
+      const title = document.createElement("strong");
+      title.textContent = columnName;
+      section.appendChild(title);
+
+      uniqueValues.forEach(value => {
+        const label = document.createElement("label");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = value;
+        checkbox.dataset.column = columnName;
+        checkbox.addEventListener("change", onCheckboxChange);
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(value));
+        section.appendChild(label);
+      });
+
+      filtersDiv.appendChild(section);
+    }
+
+    // When checkbox toggled
+    function onCheckboxChange(e) {
+      const column = e.target.dataset.column;
+      const val = e.target.value;
+
+      if (e.target.checked) {
+        activeFilters[column].add(val);
+      } else {
+        activeFilters[column].delete(val);
+      }
+      applyFilters();
+    }
+
+    // Apply filters on DataTable rows
+    function applyFilters() {
+      // Compose regex filters for each column with selected values or empty to disable filter
+      filterColumns.forEach(col => {
+        const colIndex = headers.indexOf(col);
+        if (colIndex === -1) return;
+
+        if (activeFilters[col].size === 0) {
+          // No filter on this column
+          dataTable.column(colIndex).search("");
+        } else {
+          // Regex to match any of the selected values exactly (escape special chars)
+          const regex = Array.from(activeFilters[col])
+                             .map(v => v.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'))
+                             .join("|");
+          dataTable.column(colIndex).search(`^(${regex})$`, true, false);
+        }
+      });
+
+      dataTable.draw();
+    }
+
+    // Clear filters button
+    function addClearFiltersButton() {
+      const btn = document.createElement("button");
+      btn.id = "clearFiltersBtn";
+      btn.textContent = "Clear Filters";
+      btn.addEventListener("click", () => {
+        filterColumns.forEach(col => activeFilters[col].clear());
+        document.querySelectorAll("#filters input[type=checkbox]").forEach(chk => chk.checked = false);
+        applyFilters();
+      });
+      document.getElementById("filters").appendChild(btn);
+    }
+
+    // Main: fetch CSV, parse, build table and filters
+    fetch(csvUrl)
+      .then(res => res.text())
+      .then(csv => {
+        const rows = csv.trim().split("\n").map(r => r.split(","));
+        headers = rows[0];
+        allData = rows.slice(1);
+
+        // Build table headers
+        const thead = document.querySelector("#csv-table thead");
+        const headerRow = document.createElement("tr");
+        headers.forEach(h => {
+          const th = document.createElement("th");
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+
+        // Build table body rows
+        const tbody = document.querySelector("#csv-table tbody");
+        allData.forEach(row => {
+          const tr = document.createElement("tr");
+          row.forEach(cell => {
+            const td = document.createElement("td");
+            td.textContent = cell;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+
+        // Initialize DataTable with sorting enabled (default sort by first column ascending)
+        dataTable = $('#csv-table').DataTable({
+          order: [[0, 'asc']],
+          lengthMenu: [10, 25, 50, 100],
+          pageLength: 25,
+        });
+
+        // Create filters for each column defined in filterColumns
+        filterColumns.forEach(col => {
+          const colIndex = headers.indexOf(col);
+          if (colIndex === -1) return;
+          // Unique values for this column
+          const uniqueValues = Array.from(new Set(allData.map(row => row[colIndex]))).sort();
+          createFilterCheckboxes(col, uniqueValues);
+        });
+
+        addClearFiltersButton();
+      })
+      .catch(err => console.error("Error loading CSV:", err));
+  </script>
+</body>
+</html>
