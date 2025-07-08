@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Live Tender Tracker</title>
+  
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -27,7 +31,7 @@
 
     .download {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
     }
 
     .download a {
@@ -43,11 +47,14 @@
       background-color: #005bb5;
     }
 
-    iframe {
+    table {
       width: 100%;
-      height: 800px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      font-size: 14px;
+      border-collapse: collapse;
+    }
+
+    table.dataTable thead th {
+      background-color: #f0f0f0;
     }
 
     footer {
@@ -62,7 +69,7 @@
 
   <h1>📄 Live Tender Tracker</h1>
   <div class="description">
-    View real-time tender data from the published Google Sheet below.
+    View, search, and filter live tender data below.
   </div>
 
   <div class="download">
@@ -71,14 +78,69 @@
     </a>
   </div>
 
-  <iframe
-    src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pubhtml?gid=1976447959&single=true"
-    allowfullscreen>
-  </iframe>
+  <table id="tenderTable" class="display">
+    <thead></thead>
+    <tbody></tbody>
+  </table>
 
   <footer>
-    🔄 This page updates automatically whenever the Google Sheet is updated.
+    🔄 This table is automatically updated from the latest Google Sheet data.
   </footer>
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <!-- DataTables JS -->
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+  <!-- PapaParse for CSV parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pub?gid=1976447959&single=true&output=csv";
+
+    fetch(csvUrl)
+      .then(response => response.text())
+      .then(csvText => {
+        const parsed = Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true
+        });
+
+        const table = $('#tenderTable');
+        const headers = Object.keys(parsed.data[0]);
+
+        // Build table header
+        let theadHtml = '<tr>';
+        headers.forEach(header => {
+          theadHtml += `<th>${header}</th>`;
+        });
+        theadHtml += '</tr>';
+        table.find('thead').html(theadHtml);
+
+        // Build table body
+        let tbodyHtml = '';
+        parsed.data.forEach(row => {
+          tbodyHtml += '<tr>';
+          headers.forEach(header => {
+            tbodyHtml += `<td>${row[header]}</td>`;
+          });
+          tbodyHtml += '</tr>';
+        });
+        table.find('tbody').html(tbodyHtml);
+
+        // Initialize DataTables
+        table.DataTable({
+          pageLength: 10,
+          lengthMenu: [5, 10, 20, 50],
+          order: [],
+        });
+      })
+      .catch(err => {
+        console.error("Error loading CSV:", err);
+        document.body.innerHTML = "<p style='color:red;'>⚠️ Failed to load tender data from Google Sheet.</p>";
+      });
+  </script>
 
 </body>
 </html>
