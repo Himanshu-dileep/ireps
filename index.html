@@ -2,76 +2,83 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tender Notices – Live Sheet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Tender Tracker</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 30px;
-      background: #f8f8f8;
+      background-color: #f9f9f9;
       color: #333;
     }
 
     h1 {
+      text-align: center;
       color: #2c3e50;
+      margin-bottom: 10px;
     }
 
-    .sheet-container {
-      margin-top: 20px;
-      border: 1px solid #ccc;
+    .description {
+      text-align: center;
+      font-size: 16px;
+      color: #555;
+      margin-bottom: 25px;
+    }
+
+    .download {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .download a {
+      text-decoration: none;
+      font-size: 16px;
+      background-color: #0073e6;
+      color: white;
+      padding: 10px 20px;
       border-radius: 6px;
-      overflow: hidden;
+    }
+
+    .download a:hover {
+      background-color: #005bb5;
     }
 
     iframe {
       width: 100%;
-      height: 700px;
-      border: none;
+      height: 800px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
     }
 
-    .download-link {
-      margin: 15px 0;
-      display: inline-block;
-      font-size: 16px;
-    }
-
-    .download-link a {
-      text-decoration: none;
-      color: #0073e6;
-    }
-
-    .download-link a:hover {
-      text-decoration: underline;
-    }
-
-    @media (max-width: 768px) {
-      iframe {
-        height: 500px;
-      }
+    footer {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 30px;
+      color: #777;
     }
   </style>
 </head>
 <body>
 
-  <h1>📄 Live Tender Notices</h1>
-  <p>This data is fetched live from our published Google Sheet. You can view, scroll, and interact with the embedded sheet below.</p>
+  <h1>📄 Live Tender Tracker</h1>
+  <div class="description">
+    View real-time tender data from the published Google Sheet below.
+  </div>
 
-  <div class="download-link">
-    📥 <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pub?gid=1976447959&single=true&output=xlsx" target="_blank">
-      Download as Excel (.xlsx)
+  <div class="download">
+    📥 <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pub?output=xlsx" target="_blank">
+      Download Excel File
     </a>
   </div>
 
-  <div class="sheet-container">
-    <iframe 
-      src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pubhtml?gid=1976447959&single=true&widget=true&headers=false"
-      allowfullscreen>
-    </iframe>
-  </div>
+  <iframe
+    src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pubhtml?gid=1976447959&single=true"
+    allowfullscreen>
+  </iframe>
 
-  <p style="margin-top: 30px; font-size: 14px; color: #777;">
-    🔄 Last updated: Automatically reflects updates made to the original Google Sheet.
-  </p>
+  <footer>
+    🔄 This page updates automatically whenever the Google Sheet is updated.
+  </footer>
 
 </body>
 </html>
