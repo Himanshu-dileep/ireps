@@ -1,146 +1,179 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Live Tender Tracker</title>
-  
-  <!-- DataTables CSS -->
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
-
+  <title>Shanti Machinery Works - Work List</title>
+  <meta charset="utf-8">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 30px;
-      background-color: #f9f9f9;
-      color: #333;
-    }
-
-    h1 {
-      text-align: center;
-      color: #2c3e50;
-      margin-bottom: 10px;
-    }
-
-    .description {
-      text-align: center;
-      font-size: 16px;
-      color: #555;
-      margin-bottom: 25px;
-    }
-
-    .download {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .download a {
-      text-decoration: none;
-      font-size: 16px;
-      background-color: #0073e6;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 6px;
-    }
-
-    .download a:hover {
-      background-color: #005bb5;
-    }
-
-    table {
-      width: 100%;
-      font-size: 14px;
-      border-collapse: collapse;
-    }
-
-    table.dataTable thead th {
-      background-color: #f0f0f0;
-    }
-
-    footer {
-      text-align: center;
-      font-size: 14px;
-      margin-top: 30px;
-      color: #777;
-    }
+    /* Your previous CSS styles */
   </style>
+
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
 </head>
 <body>
+  <h1>Shanti Machinery Works - Work List</h1>
+  <main>
+    <div id="filters">
+      <h3>Filters</h3>
+      <label>
+        Priority:
+        <select id="priorityFilter">
+          <option value="">All</option>
+        </select>
+      </label>
+      <label>
+        Status:
+        <select id="statusFilter">
+          <option value="">All</option>
+        </select>
+      </label>
+    </div>
 
-  <h1>📄 Live Tender Tracker</h1>
-  <div class="description">
-    View, search, and filter live tender data below.
-  </div>
+    <div id="table-container">
+      <table id="csv-table">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
-  <div class="download">
-    📥 <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pub?output=xlsx" target="_blank">
-      Download Excel File
-    </a>
-  </div>
+    <!-- Save Changes Button -->
+    <div style="text-align: center; margin-top: 20px;">
+      <button id="saveChangesBtn">Save Changes</button>
+    </div>
+  </main>
 
-  <table id="tenderTable" class="display">
-    <thead></thead>
-    <tbody></tbody>
-  </table>
-
-  <footer>
-    🔄 This table is automatically updated from the latest Google Sheet data.
-  </footer>
-
-  <!-- jQuery -->
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-  <!-- DataTables JS -->
-  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-
-  <!-- PapaParse for CSV parsing -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 
   <script>
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQP7fgbl24sR0EAC4CvyGoeKWJFiA7l1rojSgIntZNo8Swu04V14X8M_6LGVC61qlfPrUdc2nzUIKFK/pub?gid=1976447959&single=true&output=csv";
 
+    let dataTable;
+
     fetch(csvUrl)
-      .then(response => response.text())
-      .then(csvText => {
-        const parsed = Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true
+      .then(res => res.text())
+      .then(csv => {
+        const rows = csv.trim().split("\n").map(r => r.split(","));
+        const [headers, ...data] = rows;
+
+        const thead = document.querySelector("#csv-table thead");
+        const tbody = document.querySelector("#csv-table tbody");
+
+        const headerRow = document.createElement("tr");
+        headers.forEach(h => {
+          const th = document.createElement("th");
+          th.textContent = h;
+          headerRow.appendChild(th);
         });
+        thead.appendChild(headerRow);
 
-        const table = $('#tenderTable');
-        const headers = Object.keys(parsed.data[0]);
-
-        // Build table header
-        let theadHtml = '<tr>';
-        headers.forEach(header => {
-          theadHtml += `<th>${header}</th>`;
-        });
-        theadHtml += '</tr>';
-        table.find('thead').html(theadHtml);
-
-        // Build table body
-        let tbodyHtml = '';
-        parsed.data.forEach(row => {
-          tbodyHtml += '<tr>';
-          headers.forEach(header => {
-            tbodyHtml += `<td>${row[header]}</td>`;
+        data.forEach(row => {
+          const tr = document.createElement("tr");
+          row.forEach(cell => {
+            const td = document.createElement("td");
+            td.textContent = cell;
+            tr.appendChild(td);
           });
-          tbodyHtml += '</tr>';
-        });
-        table.find('tbody').html(tbodyHtml);
 
-        // Initialize DataTables
-        table.DataTable({
-          pageLength: 10,
-          lengthMenu: [5, 10, 20, 50],
-          order: [],
+          // Add a dropdown for status in the Status column
+          const statusColIndex = headers.indexOf("Status");
+          if (statusColIndex !== -1) {
+            const statusCell = tr.cells[statusColIndex];
+            const select = document.createElement("select");
+            ["To Do", "In Progress", "Completed"].forEach(status => {
+              const option = document.createElement("option");
+              option.value = status;
+              option.textContent = status;
+              select.appendChild(option);
+            });
+
+            // Set the current status value
+            select.value = row[statusColIndex];
+
+            statusCell.innerHTML = "";  // Clear the existing content
+            statusCell.appendChild(select);  // Add the select dropdown
+          }
+
+          tbody.appendChild(tr);
         });
-      })
-      .catch(err => {
-        console.error("Error loading CSV:", err);
-        document.body.innerHTML = "<p style='color:red;'>⚠️ Failed to load tender data from Google Sheet.</p>";
+
+        dataTable = $('#csv-table').DataTable();
+
+        // Add listeners for priority and status filters
+        populateFilter("priorityFilter", headers, data, "Priority");
+        populateFilter("statusFilter", headers, data, "Status");
+
+        document.getElementById("priorityFilter").addEventListener("change", applyFilters);
+        document.getElementById("statusFilter").addEventListener("change", applyFilters);
       });
-  </script>
 
+    function populateFilter(filterId, headers, data, columnName) {
+      const index = headers.indexOf(columnName);
+      if (index === -1) return;
+
+      const values = [...new Set(data.map(row => row[index]))].filter(Boolean).sort();
+      const select = document.getElementById(filterId);
+      values.forEach(val => {
+        const option = document.createElement("option");
+        option.value = val;
+        option.textContent = val;
+        select.appendChild(option);
+      });
+    }
+
+    function applyFilters() {
+      const priority = document.getElementById("priorityFilter").value.toLowerCase();
+      const status = document.getElementById("statusFilter").value.toLowerCase();
+
+      dataTable.columns().every(function (i) {
+        const header = dataTable.column(i).header().textContent.toLowerCase();
+
+        if (header === "priority") {
+          this.search(priority);
+        } else if (header === "status") {
+          this.search(status);
+        } else {
+          this.search('');
+        }
+      });
+      dataTable.draw();
+    }
+
+    // Save changes when the button is clicked
+    document.getElementById("saveChangesBtn").addEventListener("click", submitUpdates);
+
+    function submitUpdates() {
+      const rows = document.querySelectorAll("#csv-table tbody tr");
+      const updates = [];
+
+      const statusColIndex = Array.from(document.querySelectorAll("#csv-table thead th"))
+                                  .findIndex(th => th.textContent === "Status");
+      const idColIndex = Array.from(document.querySelectorAll("#csv-table thead th"))
+                              .findIndex(th => th.textContent === "Task Title" || th.textContent === "ID" || th.textContent === "Task ID");
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        if (statusColIndex !== -1 && idColIndex !== -1) {
+          const statusSelect = cells[statusColIndex].querySelector("select");
+          const taskId = cells[idColIndex].textContent;
+          if (statusSelect) {
+            updates.push({ id: taskId, status: statusSelect.value });
+          }
+        }
+      });
+
+      // Send POST request to update the statuses
+      fetch("https://script.google.com/macros/s/AKfycbwXhkVFy9HFVG_-DB7M8k_nVcZ2zFuduXloC7uUqRgaiD7EOLqSbpjfMnux9GilAlk/exec", {
+        method: "POST",
+        body: JSON.stringify(updates),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })
+      .then(res => res.text())
+      .then(data => alert(data))  // Show the success message
+      .catch(err => console.error("Error updating:", err));
+    }
+  </script>
 </body>
 </html>
