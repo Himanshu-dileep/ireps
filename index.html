@@ -51,61 +51,68 @@
     let dataTable;
 
     fetch(csvUrl)
-      .then(res => res.text())
-      .then(csv => {
-        const rows = csv.trim().split("\n").map(r => r.split(","));
-        const [headers, ...data] = rows;
+  .then(res => res.text())
+  .then(csv => {
+    const rows = csv.trim().split("\n").map(r => r.split(","));
+    const [headers, ...data] = rows;
 
-        const thead = document.querySelector("#csv-table thead");
-        const tbody = document.querySelector("#csv-table tbody");
+    const thead = document.querySelector("#csv-table thead");
+    const tbody = document.querySelector("#csv-table tbody");
 
-        const headerRow = document.createElement("tr");
-        headers.forEach(h => {
-          const th = document.createElement("th");
-          th.textContent = h;
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
+    // Clear existing table content (to avoid re-append if reloaded)
+    thead.innerHTML = "";
+    tbody.innerHTML = "";
 
-        data.forEach(row => {
-          const tr = document.createElement("tr");
-          row.forEach(cell => {
-            const td = document.createElement("td");
-            td.textContent = cell;
-            tr.appendChild(td);
+    // Build table header
+    const headerRow = document.createElement("tr");
+    headers.forEach(h => {
+      const th = document.createElement("th");
+      th.textContent = h;
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+
+    const statusColIndex = headers.indexOf("Status");
+
+    data.forEach(row => {
+      // Skip rows that don't match header length
+      if (row.length !== headers.length) return;
+
+      const tr = document.createElement("tr");
+      row.forEach((cell, index) => {
+        const td = document.createElement("td");
+
+        // Inject dropdown only in the Status column
+        if (index === statusColIndex) {
+          const select = document.createElement("select");
+          ["To Do", "In Progress", "Completed"].forEach(status => {
+            const option = document.createElement("option");
+            option.value = status;
+            option.textContent = status;
+            if (status === cell) option.selected = true;
+            select.appendChild(option);
           });
+          td.appendChild(select);
+        } else {
+          td.textContent = cell;
+        }
 
-          // Add a dropdown for status in the Status column
-          const statusColIndex = headers.indexOf("Status");
-          if (statusColIndex !== -1) {
-            const statusCell = tr.cells[statusColIndex];
-            const select = document.createElement("select");
-            ["To Do", "In Progress", "Completed"].forEach(status => {
-              const option = document.createElement("option");
-              option.value = status;
-              option.textContent = status;
-              select.appendChild(option);
-            });
-
-            // Set the current status value
-            select.value = row[statusColIndex];
-
-            statusCell.innerHTML = "";  // Clear the existing content
-            statusCell.appendChild(select);  // Add the select dropdown
-          }
-
-          tbody.appendChild(tr);
-        });
-
-        dataTable = $('#csv-table').DataTable();
-
-        // Add listeners for priority and status filters
-        populateFilter("priorityFilter", headers, data, "Priority");
-        populateFilter("statusFilter", headers, data, "Status");
-
-        document.getElementById("priorityFilter").addEventListener("change", applyFilters);
-        document.getElementById("statusFilter").addEventListener("change", applyFilters);
+        tr.appendChild(td);
       });
+      tbody.appendChild(tr);
+    });
+
+    // Initialize DataTable after full DOM update
+    dataTable = $('#csv-table').DataTable();
+
+    // Populate filters
+    populateFilter("priorityFilter", headers, data, "Priority");
+    populateFilter("statusFilter", headers, data, "Status");
+
+    document.getElementById("priorityFilter").addEventListener("change", applyFilters);
+    document.getElementById("statusFilter").addEventListener("change", applyFilters);
+  });
+
 
     function populateFilter(filterId, headers, data, columnName) {
       const index = headers.indexOf(columnName);
