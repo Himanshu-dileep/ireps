@@ -68,11 +68,6 @@
         <tbody></tbody>
       </table>
     </div>
-
-    <!-- Save Changes Button -->
-    <div style="text-align: center; margin-top: 20px;">
-      <button id="saveChangesBtn">Save Changes</button>
-    </div>
   </main>
 
   <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
@@ -85,16 +80,10 @@
     let allData = [];
     let headers = [];
 
-    // Columns to create filters for
     const filterColumns = ["Department", "Organisation", "EMD?", "Qualified"];
-
-    // Store selected filters here
     const activeFilters = {};
-
-    // Initialize activeFilters keys with empty sets
     filterColumns.forEach(col => activeFilters[col] = new Set());
 
-    // Utility: create checkbox list for filter column values
     function createFilterCheckboxes(columnName, uniqueValues) {
       const filtersDiv = document.getElementById("filters");
       const section = document.createElement("section");
@@ -117,7 +106,6 @@
       filtersDiv.appendChild(section);
     }
 
-    // When checkbox toggled
     function onCheckboxChange(e) {
       const column = e.target.dataset.column;
       const val = e.target.value;
@@ -130,18 +118,14 @@
       applyFilters();
     }
 
-    // Apply filters on DataTable rows
     function applyFilters() {
-      // Compose regex filters for each column with selected values or empty to disable filter
       filterColumns.forEach(col => {
         const colIndex = headers.indexOf(col);
         if (colIndex === -1) return;
 
         if (activeFilters[col].size === 0) {
-          // No filter on this column
           dataTable.column(colIndex).search("");
         } else {
-          // Regex to match any of the selected values exactly (escape special chars)
           const regex = Array.from(activeFilters[col])
                              .map(v => v.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'))
                              .join("|");
@@ -152,7 +136,6 @@
       dataTable.draw();
     }
 
-    // Clear filters button
     function addClearFiltersButton() {
       const btn = document.createElement("button");
       btn.id = "clearFiltersBtn";
@@ -165,7 +148,6 @@
       document.getElementById("filters").appendChild(btn);
     }
 
-    // Main: fetch CSV, parse, build table and filters
     fetch(csvUrl)
       .then(res => res.text())
       .then(csv => {
@@ -173,7 +155,6 @@
         headers = rows[0];
         allData = rows.slice(1);
 
-        // Build table headers
         const thead = document.querySelector("#csv-table thead");
         const headerRow = document.createElement("tr");
         headers.forEach(h => {
@@ -183,7 +164,6 @@
         });
         thead.appendChild(headerRow);
 
-        // Build table body rows
         const tbody = document.querySelector("#csv-table tbody");
         allData.forEach(row => {
           const tr = document.createElement("tr");
@@ -195,18 +175,15 @@
           tbody.appendChild(tr);
         });
 
-        // Initialize DataTable
         dataTable = $('#csv-table').DataTable({
-          order: [], // default no sorting to preserve original order
+          order: [],
           lengthMenu: [10, 25, 50, 100],
           pageLength: 25,
         });
 
-        // Create filters for each column defined in filterColumns
         filterColumns.forEach(col => {
           const colIndex = headers.indexOf(col);
           if (colIndex === -1) return;
-          // Unique values for this column
           const uniqueValues = Array.from(new Set(allData.map(row => row[colIndex]))).sort();
           createFilterCheckboxes(col, uniqueValues);
         });
@@ -214,9 +191,6 @@
         addClearFiltersButton();
       })
       .catch(err => console.error("Error loading CSV:", err));
-
-    // Your existing save changes code (if needed) can stay here, unchanged
-
   </script>
 </body>
 </html>
